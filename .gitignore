@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Envs
+.env
+.venv/
+venv/
+env/
+
+# Checkpoints, logs
+checkpoints/
+logs/
+wandb/
+tensorboard/
+
+# Jupyter
+.ipynb_checkpoints/
