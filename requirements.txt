@@ -1,0 +1,30 @@
+# core
+torch>=2.0.0
+torchvision
+numpy>=1.23
+pandas>=1.5
+scikit-learn
+tqdm
+PyYAML
+matplotlib
+seaborn
+scipy
+# chemistry
+rdkit-pypi
+networkx
+# experiment tracking
+wandb
+mlflow
+tensorboard
+# api
+fastapi
+uvicorn
+# testing/tools
+pytest
+black
+isort
+flake8
+# misc
+sentencepiece
+transformers
+tokenizers
