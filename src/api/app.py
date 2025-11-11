@@ -47,6 +47,11 @@ app.config['RESULTS_FOLDER'] = os.environ.get('RESULTS_FOLDER', os.path.join(tem
 app.config['BATCH_FOLDER'] = os.environ.get('BATCH_FOLDER', os.path.join(tempfile.gettempdir(), 'docking_batch'))
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max upload size
 
+# Create shortcuts for easier access
+UPLOAD_FOLDER = app.config['UPLOAD_FOLDER']
+RESULTS_FOLDER = app.config['RESULTS_FOLDER']
+BATCH_FOLDER = app.config['BATCH_FOLDER']
+
 # Configure Redis
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
@@ -484,6 +489,35 @@ def job_status(job_id):
     Returns:
         JSON response with job status
     """
+    # First check Redis for results (worker stores them there)
+    try:
+        redis_client.ping()
+        result_key = f"{RESULT_KEY_PREFIX}{job_id}"
+        redis_result = redis_client.get(result_key)
+        
+        if redis_result:
+            # Job completed by worker, results in Redis
+            result_data = json.loads(redis_result.decode('utf-8'))
+            
+            response = {
+                'job_id': job_id,
+                'status': result_data.get('status', 'completed'),
+                'message': 'Job completed successfully' if result_data.get('status') == 'completed' else result_data.get('error', '')
+            }
+            
+            # Include results if available
+            if result_data.get('status') == 'completed' and 'results' in result_data:
+                results = result_data['results']
+                response['results'] = {
+                    'num_poses': len(results.get('scores', [])),
+                    'scores': results.get('scores', [])
+                }
+            
+            return jsonify(response)
+    except redis.exceptions.ConnectionError:
+        logger.warning("Redis not available, checking local job storage")
+    
+    # Fallback to in-memory jobs dictionary
     with job_lock:
         if job_id not in jobs:
             return jsonify({'error': 'Job not found'}), 404
@@ -541,6 +575,38 @@ def get_result_file(job_id, file_type):
         
         return jsonify({'error': f'No {file_type} file available'}), 404
 
+@app.route('/api/download/<job_id>/<path:filename>', methods=['GET'])
+def download_file(job_id, filename):
+    """Download a specific file from job results.
+    
+    Args:
+        job_id: ID of the job
+        filename: Name of the file to download
+        
+    Returns:
+        File download
+    """
+    import os
+    
+    # Construct the file path
+    results_dir = os.path.join(RESULTS_FOLDER, job_id)
+    file_path = os.path.join(results_dir, filename)
+    
+    # Security check: ensure the file is within the results directory
+    if not os.path.abspath(file_path).startswith(os.path.abspath(results_dir)):
+        return jsonify({'error': 'Invalid file path'}), 403
+    
+    # Check if file exists
+    if not os.path.exists(file_path):
+        logger.warning(f"File not found: {file_path}")
+        return jsonify({'error': f'File not found: {filename}'}), 404
+    
+    try:
+        return send_file(file_path, as_attachment=False, mimetype='chemical/x-pdb')
+    except Exception as e:
+        logger.error(f"Error sending file {file_path}: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/jobs', methods=['GET'])
 def list_jobs():
     """List all jobs.
@@ -548,17 +614,38 @@ def list_jobs():
     Returns:
         JSON response with list of jobs
     """
+    job_list = []
+    
+    # Get jobs from in-memory storage
     with job_lock:
-        job_list = []
         for job_id, job in jobs.items():
-            job_list.append({
+            # Check Redis for updated status
+            job_status_data = {
                 'job_id': job_id,
-                'status': job.get('status', 'unknown'),
+                'status': job.get('status', 'pending'),
                 'message': job.get('message', ''),
-                'job_type': job.get('job_type', 'unknown')
-            })
-        
-        return jsonify({'jobs': job_list})
+                'job_type': job.get('job_type', 'vina')
+            }
+            
+            # Try to get updated status from Redis
+            try:
+                redis_client.ping()
+                result_key = f"{RESULT_KEY_PREFIX}{job_id}"
+                redis_result = redis_client.get(result_key)
+                
+                if redis_result:
+                    result_data = json.loads(redis_result.decode('utf-8'))
+                    job_status_data['status'] = result_data.get('status', 'completed')
+                    if result_data.get('status') == 'completed':
+                        job_status_data['message'] = 'Job completed successfully'
+                    elif result_data.get('status') == 'failed':
+                        job_status_data['message'] = result_data.get('error', 'Job failed')
+            except (redis.exceptions.ConnectionError, Exception) as e:
+                logger.debug(f"Could not check Redis for job {job_id}: {e}")
+            
+            job_list.append(job_status_data)
+    
+    return jsonify({'jobs': job_list})
 
 def main():
     """Run the Flask application."""

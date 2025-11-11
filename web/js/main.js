@@ -409,35 +409,52 @@ async function loadVisualization(jobId) {
     }
     
     try {
-        // Load protein
-        const proteinUrl = `${API_BASE_URL}/result/${jobId}/protein`;
+        // Load protein - try PDB format first (NGL handles PDB better than PDBQT)
+        const proteinUrl = `${API_BASE_URL}/download/${jobId}/protein_prepared.pdbqt`;
         
         try {
-            proteinComponent = await stage.loadFile(proteinUrl, { ext: 'pdb' });
+            // Load as PDB format (PDBQT is similar to PDB)
+            const proteinBlob = await fetch(proteinUrl).then(r => r.blob());
+            const proteinFile = new File([proteinBlob], 'protein.pdb', { type: 'chemical/x-pdb' });
+            
+            proteinComponent = await stage.loadFile(proteinFile, { ext: 'pdb' });
             proteinComponent.addRepresentation('cartoon', { color: 'chainname' });
             proteinComponent.addRepresentation('licorice', { 
                 sele: 'hetero and not water', 
                 multipleBond: true 
             });
+            console.log('Protein loaded successfully');
         } catch (error) {
             console.warn('Error loading protein:', error);
+            console.error(error);
         }
         
-        // Load ligand
-        const ligandUrl = `${API_BASE_URL}/result/${jobId}/pdb`;
+        // Load best pose (docked ligand)
+        const ligandUrl = `${API_BASE_URL}/download/${jobId}/docked.pdbqt`;
         
         try {
-            ligandComponent = await stage.loadFile(ligandUrl, { ext: 'pdb' });
-            ligandComponent.addRepresentation('licorice', { 
+            // Load as PDB format
+            const ligandBlob = await fetch(ligandUrl).then(r => r.blob());
+            const ligandFile = new File([ligandBlob], 'ligand.pdb', { type: 'chemical/x-pdb' });
+            
+            ligandComponent = await stage.loadFile(ligandFile, { ext: 'pdb' });
+            ligandComponent.addRepresentation('ball+stick', { 
                 multipleBond: true,
-                colorScheme: 'element'
+                colorScheme: 'element',
+                sele: '/0'  // Select first model (best pose)
             });
+            console.log('Ligand loaded successfully');
         } catch (error) {
             console.warn('Error loading ligand:', error);
+            console.error(error);
         }
         
         // Adjust view
-        stage.autoView();
+        if (proteinComponent || ligandComponent) {
+            stage.autoView();
+        } else {
+            console.error('No components loaded for visualization');
+        }
         
     } catch (error) {
         console.error('Error loading visualization:', error);
@@ -446,8 +463,59 @@ async function loadVisualization(jobId) {
 
 // View specific pose
 async function viewPose(jobId, poseNum) {
-    // TODO: Implement pose selection
-    alert(`Viewing pose ${poseNum} is not implemented yet`);
+    try {
+        // Clear existing components
+        if (stage) {
+            stage.removeAllComponents();
+        } else {
+            initViewer();
+        }
+        
+        // Load protein
+        const proteinUrl = `${API_BASE_URL}/download/${jobId}/protein_prepared.pdbqt`;
+        
+        try {
+            const proteinBlob = await fetch(proteinUrl).then(r => r.blob());
+            const proteinFile = new File([proteinBlob], 'protein.pdb', { type: 'chemical/x-pdb' });
+            
+            proteinComponent = await stage.loadFile(proteinFile, { ext: 'pdb' });
+            proteinComponent.addRepresentation('cartoon', { color: 'chainname' });
+            console.log('Protein loaded for pose view');
+        } catch (error) {
+            console.warn('Error loading protein:', error);
+            console.error(error);
+        }
+        
+        // Load specific pose from docked.pdbqt (multi-model file)
+        // Poses are 1-indexed in UI but 0-indexed in NGL
+        const modelIndex = poseNum - 1;
+        const dockedUrl = `${API_BASE_URL}/download/${jobId}/docked.pdbqt`;
+        
+        try {
+            const ligandBlob = await fetch(dockedUrl).then(r => r.blob());
+            const ligandFile = new File([ligandBlob], 'ligand.pdb', { type: 'chemical/x-pdb' });
+            
+            ligandComponent = await stage.loadFile(ligandFile, { ext: 'pdb' });
+            ligandComponent.addRepresentation('ball+stick', { 
+                multipleBond: true,
+                colorScheme: 'element',
+                sele: `/${modelIndex}`  // Select specific model (0-indexed)
+            });
+            console.log(`Loaded pose ${poseNum} (model ${modelIndex})`);
+        } catch (error) {
+            console.error('Error loading docked file:', error);
+            alert(`Could not load pose ${poseNum}. Error: ${error.message}`);
+        }
+        
+        // Adjust view
+        if (proteinComponent || ligandComponent) {
+            stage.autoView();
+        }
+        
+    } catch (error) {
+        console.error('Error viewing pose:', error);
+        alert('Error loading pose: ' + error.message);
+    }
 }
 
 // Toggle visibility of protein/ligand

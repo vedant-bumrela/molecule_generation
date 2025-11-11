@@ -119,10 +119,15 @@ def process_docking_task(task_data):
             with open(scores_path, 'r') as f:
                 scores_data = json.load(f)
             
+            # Extract affinity scores from modes
+            scores = []
+            if 'modes' in scores_data:
+                scores = [mode['affinity'] for mode in scores_data['modes']]
+            
             results = {
                 'output_file': result_path,
-                'scores': scores_data.get('scores', []),
-                'best_score': scores_data.get('best_score')
+                'scores': scores,
+                'best_score': scores_data.get('best_affinity', scores[0] if scores else None)
             }
             
         elif method == 'gnina':
