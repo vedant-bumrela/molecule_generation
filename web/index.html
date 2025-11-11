@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Enabled Molecular Docking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/ngl@2.0.0-dev.37/dist/ngl.js"></script>
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        #viewer {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .job-card {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .score-table {
+            font-size: 0.9rem;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="mb-4">
+            <h1 class="display-5 fw-bold text-center">AI-Enabled Molecular Docking System</h1>
+            <p class="text-center text-muted">Predict and visualize protein-ligand interactions</p>
+        </header>
+
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="submit-tab" data-bs-toggle="tab" data-bs-target="#submit" type="button" role="tab" aria-controls="submit" aria-selected="true">Submit Job</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs" type="button" role="tab" aria-controls="jobs" aria-selected="false">Job Status</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab" aria-controls="results" aria-selected="false">Results</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="batch-tab" data-bs-toggle="tab" data-bs-target="#batch" type="button" role="tab" aria-controls="batch" aria-selected="false">Batch Processing</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Submit Job Tab -->
+            <div class="tab-pane fade show active" id="submit" role="tabpanel" aria-labelledby="submit-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Submit Docking Job</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="dockingForm">
+                                    <div class="mb-3">
+                                        <label for="jobType" class="form-label">Job Type</label>
+                                        <select class="form-select" id="jobType" name="job_type" required>
+                                            <option value="vina">AutoDock Vina (Classical)</option>
+                                            <option value="equibind">EquiBind (Fast ML)</option>
+                                            <option value="diffdock">DiffDock (Generative ML)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="proteinFile" class="form-label">Protein Structure (PDB)</label>
+                                        <input class="form-control" type="file" id="proteinFile" name="protein" accept=".pdb" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Ligand Input</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="ligandInputType" id="ligandFile" value="file" checked>
+                                            <label class="form-check-label" for="ligandFile">
+                                                Upload Ligand File
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="ligandInputType" id="ligandSmiles" value="smiles">
+                                            <label class="form-check-label" for="ligandSmiles">
+                                                Enter SMILES String
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div id="ligandFileInput" class="mb-3">
+                                        <label for="ligandFileUpload" class="form-label">Ligand File (SDF, MOL2, PDB)</label>
+                                        <input class="form-control" type="file" id="ligandFileUpload" name="ligand" accept=".sdf,.mol2,.pdb,.pdbqt">
+                                    </div>
+
+                                    <div id="ligandSmilesInput" class="mb-3 d-none">
+                                        <label for="smilesInput" class="form-label">SMILES String</label>
+                                        <input type="text" class="form-control" id="smilesInput" name="smiles" placeholder="e.g., CC(=O)OC1=CC=CC=C1C(=O)O">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="advancedOptions">
+                                            <label class="form-check-label" for="advancedOptions">
+                                                Show Advanced Options
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div id="advancedOptionsPanel" class="d-none">
+                                        <div class="card mb-3">
+                                            <div class="card-header">Advanced Options</div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Binding Site Box (Optional)</label>
+                                                    <div class="row g-2">
+                                                        <div class="col-md-6">
+                                                            <label for="boxCenterX" class="form-label">Center X</label>
+                                                            <input type="number" class="form-control" id="boxCenterX" name="box_center_x" step="0.1">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="boxSizeX" class="form-label">Size X</label>
+                                                            <input type="number" class="form-control" id="boxSizeX" name="box_size_x" step="0.1" value="20">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-2 mt-1">
+                                                        <div class="col-md-6">
+                                                            <label for="boxCenterY" class="form-label">Center Y</label>
+                                                            <input type="number" class="form-control" id="boxCenterY" name="box_center_y" step="0.1">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="boxSizeY" class="form-label">Size Y</label>
+                                                            <input type="number" class="form-control" id="boxSizeY" name="box_size_y" step="0.1" value="20">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row g-2 mt-1">
+                                                        <div class="col-md-6">
+                                                            <label for="boxCenterZ" class="form-label">Center Z</label>
+                                                            <input type="number" class="form-control" id="boxCenterZ" name="box_center_z" step="0.1">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="boxSizeZ" class="form-label">Size Z</label>
+                                                            <input type="number" class="form-control" id="boxSizeZ" name="box_size_z" step="0.1" value="20">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="vinaOptions">
+                                                    <div class="mb-3">
+                                                        <label for="exhaustiveness" class="form-label">Exhaustiveness</label>
+                                                        <input type="number" class="form-control" id="exhaustiveness" name="exhaustiveness" min="1" max="32" value="8">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="numModes" class="form-label">Number of Poses</label>
+                                                        <input type="number" class="form-control" id="numModes" name="num_modes" min="1" max="20" value="9">
+                                                    </div>
+                                                    <div class="mb-3 form-check">
+                                                        <input type="checkbox" class="form-check-input" id="runRescoring" name="run_rescoring" value="true">
+                                                        <label class="form-check-label" for="runRescoring">Run GNINA ML Rescoring</label>
+                                                    </div>
+                                                </div>
+
+                                                <div id="diffdockOptions" class="d-none">
+                                                    <div class="mb-3">
+                                                        <label for="numSamples" class="form-label">Number of Samples</label>
+                                                        <input type="number" class="form-control" id="numSamples" name="num_samples" min="1" max="20" value="10">
+                                                    </div>
+                                                    <div class="mb-3 form-check">
+                                                        <input type="checkbox" class="form-check-input" id="confidenceModel" name="confidence_model" value="true" checked>
+                                                        <label class="form-check-label" for="confidenceModel">Use Confidence Model</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary">Submit Job</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Method Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="methodInfo">
+                                    <h5>AutoDock Vina</h5>
+                                    <p>Classical molecular docking engine that uses a scoring function and search algorithm to predict binding poses and affinities.</p>
+                                    <ul>
+                                        <li><strong>Speed:</strong> Fast</li>
+                                        <li><strong>Accuracy:</strong> Good baseline</li>
+                                        <li><strong>Best for:</strong> Standard docking, virtual screening</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Tab -->
+            <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Job Status</h5>
+                        <button id="refreshJobsBtn" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="jobsList" class="row g-3">
+                            <div class="loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div class="tab-pane fade" id="results" role="tabpanel" aria-labelledby="results-tab">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">3D Visualization</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="viewer"></div>
+                                <div class="mt-3">
+                                    <div class="btn-group" role="group">
+                                        <button id="showProtein" class="btn btn-sm btn-outline-primary">Protein</button>
+                                        <button id="showLigand" class="btn btn-sm btn-outline-success">Ligand</button>
+                                        <button id="showBoth" class="btn btn-sm btn-outline-info">Both</button>
+                                    </div>
+                                    <div class="btn-group ms-2" role="group">
+                                        <button id="viewCartoon" class="btn btn-sm btn-outline-secondary">Cartoon</button>
+                                        <button id="viewSurface" class="btn btn-sm btn-outline-secondary">Surface</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Docking Results</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultInfo">
+                                    <p class="text-muted">Select a job to view results</p>
+                                </div>
+                                <div id="scoreTable" class="d-none">
+                                    <h6>Binding Scores</h6>
+                                    <table class="table table-sm score-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pose</th>
+                                                <th>Score (kcal/mol)</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="scoreTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3">
+                                    <a id="downloadPdbqt" class="btn btn-sm btn-outline-primary d-none" href="#" target="_blank">Download PDBQT</a>
+                                    <a id="downloadPdb" class="btn btn-sm btn-outline-success d-none" href="#" target="_blank">Download PDB</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Batch Processing Tab -->
+            <div class="tab-pane fade" id="batch" role="tabpanel" aria-labelledby="batch-tab">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Batch Processing</h5>
+                </div>
+                <div class="card-body">
+                  <form id="batch-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                      <label for="batch-protein" class="form-label">Protein Structure (PDB)</label>
+                      <input type="file" class="form-control" id="batch-protein" name="protein" accept=".pdb">
+                      <div class="form-text">Upload a protein structure in PDB format.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="batch-library" class="form-label">Compound Library</label>
+                      <input type="file" class="form-control" id="batch-library" name="library" accept=".csv,.sdf">
+                      <div class="form-text">Upload a CSV file with SMILES column or SDF file with multiple compounds.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="batch-method" class="form-label">Docking Method</label>
+                      <select class="form-select" id="batch-method" name="method">
+                        <option value="vina" selected>AutoDock Vina</option>
+                        <option value="gnina">GNINA</option>
+                        <option value="equibind">EquiBind</option>
+                        <option value="diffdock">DiffDock</option>
+                      </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="batch-num-workers" class="form-label">Number of Workers</label>
+                      <input type="number" class="form-control" id="batch-num-workers" name="num_workers" value="4" min="1" max="16">
+                      <div class="form-text">Number of parallel workers for processing.</div>
+                    </div>
+                    
+                    <div class="accordion mb-3" id="batchOptionsAccordion">
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="batchOptionsHeading">
+                          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#batchOptionsCollapse" aria-expanded="false" aria-controls="batchOptionsCollapse">
+                            Advanced Options
+                          </button>
+                        </h2>
+                        <div id="batchOptionsCollapse" class="accordion-collapse collapse" aria-labelledby="batchOptionsHeading" data-bs-parent="#batchOptionsAccordion">
+                          <div class="accordion-body">
+                            <div class="row">
+                              <div class="col-md-6">
+                                <h6>Box Parameters</h6>
+                                <div class="row g-2">
+                                  <div class="col-md-6">
+                                    <label for="batch-center-x" class="form-label">Center X</label>
+                                    <input type="number" class="form-control" id="batch-center-x" name="center_x" value="0" step="0.1">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="batch-size-x" class="form-label">Size X</label>
+                                    <input type="number" class="form-control" id="batch-size-x" name="size_x" value="20" step="0.1" min="1">
+                                  </div>
+                                </div>
+                                <div class="row g-2">
+                                  <div class="col-md-6">
+                                    <label for="batch-center-y" class="form-label">Center Y</label>
+                                    <input type="number" class="form-control" id="batch-center-y" name="center_y" value="0" step="0.1">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="batch-size-y" class="form-label">Size Y</label>
+                                    <input type="number" class="form-control" id="batch-size-y" name="size_y" value="20" step="0.1" min="1">
+                                  </div>
+                                </div>
+                                <div class="row g-2">
+                                  <div class="col-md-6">
+                                    <label for="batch-center-z" class="form-label">Center Z</label>
+                                    <input type="number" class="form-control" id="batch-center-z" name="center_z" value="0" step="0.1">
+                                  </div>
+                                  <div class="col-md-6">
+                                    <label for="batch-size-z" class="form-label">Size Z</label>
+                                    <input type="number" class="form-control" id="batch-size-z" name="size_z" value="20" step="0.1" min="1">
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <h6>Docking Parameters</h6>
+                                <div class="mb-2">
+                                  <label for="batch-exhaustiveness" class="form-label">Exhaustiveness</label>
+                                  <input type="number" class="form-control" id="batch-exhaustiveness" name="exhaustiveness" value="8" min="1" max="32">
+                                </div>
+                                <div class="mb-2">
+                                  <label for="batch-num-modes" class="form-label">Number of Modes</label>
+                                  <input type="number" class="form-control" id="batch-num-modes" name="num_modes" value="9" min="1" max="20">
+                                </div>
+                                <div class="mb-2">
+                                  <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="batch-run-rescoring" name="run_rescoring" value="true">
+                                    <label class="form-check-label" for="batch-run-rescoring">
+                                      Run GNINA Rescoring
+                                    </label>
+                                  </div>
+                                </div>
+                                <div class="mb-2">
+                                  <label for="batch-num-samples" class="form-label">DiffDock Samples</label>
+                                  <input type="number" class="form-control" id="batch-num-samples" name="num_samples" value="10" min="1" max="50">
+                                  <div class="form-text">Only applies to DiffDock method.</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="batch-submit-btn">Submit Batch Job</button>
+                  </form>
+                  
+                  <div class="mt-4">
+                    <h5>Batch Jobs</h5>
+                    <div class="table-responsive">
+                      <table class="table table-striped" id="batch-jobs-table">
+                        <thead>
+                          <tr>
+                            <th>Job ID</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Batch jobs will be listed here -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4" id="batch-results-container" style="display: none;">
+                    <h5>Batch Results</h5>
+                    <div class="mb-3">
+                      <a href="#" class="btn btn-primary" id="download-batch-results">Download Results CSV</a>
+                    </div>
+                    <div class="table-responsive">
+                      <table class="table table-striped" id="batch-results-table">
+                        <thead>
+                          <tr>
+                            <th>Compound ID</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Batch results will be listed here -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - shared-uploads:/app/shared
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FLASK_ENV=production
+      - UPLOAD_FOLDER=/app/shared/uploads
+      - RESULTS_FOLDER=/app/shared/results
+      - BATCH_FOLDER=/app/shared/batch
+      - GNINA_PATH=/app/ml_models/gnina
+      - EQUIBIND_PATH=/app/ml_models/EquiBind
+      - DIFFDOCK_PATH=/app/ml_models/DiffDock
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  worker:
+    build: .
+    command: python3 -m src.api.worker
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - shared-uploads:/app/shared
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - UPLOAD_FOLDER=/app/shared/uploads
+      - RESULTS_FOLDER=/app/shared/results
+      - BATCH_FOLDER=/app/shared/batch
+      - GNINA_PATH=/app/ml_models/gnina
+      - EQUIBIND_PATH=/app/ml_models/EquiBind
+      - DIFFDOCK_PATH=/app/ml_models/DiffDock
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  redis-data:
+  shared-uploads:
