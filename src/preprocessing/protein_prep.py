@@ -172,13 +172,15 @@ class ProteinPreparation:
             raise
     
     def prepare_protein(self, pdb_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None,
-                       ph: float = 7.4) -> str:
+                       ph: float = 7.4, add_hydrogens: bool = True, assign_charges: bool = True) -> str:
         """Full protein preparation pipeline.
         
         Args:
             pdb_path: Path to input PDB file
             output_path: Path to output PDBQT file (optional)
             ph: pH value for hydrogen addition
+            add_hydrogens: Whether to add hydrogens to the structure
+            assign_charges: Whether to assign charges to the structure
             
         Returns:
             Path to prepared PDBQT file
@@ -193,19 +195,27 @@ class ProteinPreparation:
         
         # Step 1: Fix protein structure
         fixed_pdb = self.fix_protein(pdb_path)
+        current_pdb = fixed_pdb
+        intermediate_files = [fixed_pdb]
         
-        # Step 2: Add hydrogens
-        h_pdb = self.add_hydrogens(fixed_pdb, ph=ph)
+        # Step 2: Add hydrogens (if requested)
+        if add_hydrogens:
+            h_pdb = self.add_hydrogens(current_pdb, ph=ph)
+            current_pdb = h_pdb
+            intermediate_files.append(h_pdb)
         
-        # Step 3: Assign charges
-        charged_pdb = self.assign_charges(h_pdb)
+        # Step 3: Assign charges (if requested)
+        if assign_charges:
+            charged_pdb = self.assign_charges(current_pdb)
+            current_pdb = charged_pdb
+            intermediate_files.append(charged_pdb)
         
         # Step 4: Convert to PDBQT
-        pdbqt_path = self.convert_to_pdbqt(charged_pdb, output_path)
+        pdbqt_path = self.convert_to_pdbqt(current_pdb, output_path)
         
         # Clean up intermediate files if needed
         if self.config.get("cleanup_intermediates", True):
-            for path in [fixed_pdb, h_pdb, charged_pdb]:
+            for path in intermediate_files:
                 if Path(path).exists():
                     os.remove(path)
         

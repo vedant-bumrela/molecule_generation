@@ -34,9 +34,9 @@ from .batch import BatchProcessor
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app with static file serving from web directory
-web_dir = Path(__file__).resolve().parents[2] / 'web'
-app = Flask(__name__, static_folder=str(web_dir), static_url_path='')
+# Initialize Flask app with static file serving from React build directory
+frontend_build_dir = Path(__file__).resolve().parents[2] / 'frontend' / 'dist'
+app = Flask(__name__, static_folder=str(frontend_build_dir), static_url_path='')
 
 # Enable CORS
 CORS(app)
@@ -176,7 +176,17 @@ def run_docking_job(job_id: str, job_data: Dict[str, Any]) -> None:
             box_params = params.get('box', {})
             if not box_params:
                 # Auto-detect binding site
-                box_center, box_size = vina.detect_binding_site(prepared_protein_path)
+                binding_site = vina.detect_binding_site(prepared_protein_path)
+                box_center = [
+                    binding_site['center_x'],
+                    binding_site['center_y'],
+                    binding_site['center_z']
+                ]
+                box_size = [
+                    binding_site['size_x'],
+                    binding_site['size_y'],
+                    binding_site['size_z']
+                ]
             else:
                 box_center = [
                     box_params.get('center_x', 0),
@@ -190,32 +200,42 @@ def run_docking_job(job_id: str, job_data: Dict[str, Any]) -> None:
                 ]
             
             # Run docking
-            output_path = vina.dock(
+            binding_site_params = {
+                'center_x': box_center[0],
+                'center_y': box_center[1],
+                'center_z': box_center[2],
+                'size_x': box_size[0],
+                'size_y': box_size[1],
+                'size_z': box_size[2]
+            }
+            output_path = vina.run_docking(
                 prepared_protein_path,
                 prepared_ligand_path,
                 output_path=output_path,
-                center_x=box_center[0],
-                center_y=box_center[1],
-                center_z=box_center[2],
-                size_x=box_size[0],
-                size_y=box_size[1],
-                size_z=box_size[2],
+                binding_site=binding_site_params,
                 exhaustiveness=params.get('exhaustiveness', 8),
                 num_modes=params.get('num_modes', 9)
             )
             
-            # Parse results
-            poses, scores = vina.parse_output(output_path)
-            
-            # Convert top pose to PDB for visualization
+            # Extract poses and convert top pose to PDB for visualization
+            pose_files = vina.extract_poses(output_path, os.path.join(job_dir, 'poses'))
             top_pose_path = os.path.join(job_dir, 'top_pose.pdb')
-            vina.extract_pose(output_path, top_pose_path, pose_num=1)
+            if pose_files:
+                vina.convert_pose_to_pdb(pose_files[0], top_pose_path)
+            
+            # Load scores from JSON file created by run_docking
+            scores_file = output_path.replace('.pdbqt', '.json')
+            scores = {}
+            if os.path.exists(scores_file):
+                import json
+                with open(scores_file, 'r') as f:
+                    scores = json.load(f)
             
             results = {
                 'output_path': output_path,
                 'top_pose_path': top_pose_path,
                 'scores': scores,
-                'num_poses': len(poses)
+                'num_poses': len(pose_files)
             }
             
             # Optional: Run GNINA rescoring
@@ -646,6 +666,24 @@ def list_jobs():
             job_list.append(job_status_data)
     
     return jsonify({'jobs': job_list})
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react_app(path):
+    """Serve React app for all non-API routes."""
+    # If it's an API route, let it be handled by the API endpoints
+    if path.startswith('api/'):
+        return jsonify({'error': 'API endpoint not found'}), 404
+    
+    # For all other routes, serve the React app
+    try:
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
+    except Exception as e:
+        logger.error(f"Error serving React app: {e}")
+        return jsonify({'error': 'Frontend not available'}), 500
 
 def main():
     """Run the Flask application."""

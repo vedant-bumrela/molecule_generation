@@ -339,7 +339,17 @@ class BatchProcessor:
         # Auto-detect binding site if not specified
         box_params = self.config.get("box", {})
         if not box_params:
-            box_center, box_size = vina.detect_binding_site(protein_path)
+            binding_site = vina.detect_binding_site(protein_path)
+            box_center = [
+                binding_site['center_x'],
+                binding_site['center_y'],
+                binding_site['center_z']
+            ]
+            box_size = [
+                binding_site['size_x'],
+                binding_site['size_y'],
+                binding_site['size_z']
+            ]
         else:
             box_center = [
                 box_params.get("center_x", 0),
@@ -354,26 +364,37 @@ class BatchProcessor:
         
         # Run docking
         output_path = os.path.join(output_dir, "docking_results.pdbqt")
-        output_path = vina.dock(
+        binding_site_params = {
+            'center_x': box_center[0],
+            'center_y': box_center[1],
+            'center_z': box_center[2],
+            'size_x': box_size[0],
+            'size_y': box_size[1],
+            'size_z': box_size[2]
+        }
+        output_path = vina.run_docking(
             protein_path,
             ligand_path,
             output_path=output_path,
-            center_x=box_center[0],
-            center_y=box_center[1],
-            center_z=box_center[2],
-            size_x=box_size[0],
-            size_y=box_size[1],
-            size_z=box_size[2],
+            binding_site=binding_site_params,
             exhaustiveness=self.config.get("exhaustiveness", 8),
             num_modes=self.config.get("num_modes", 9)
         )
         
-        # Parse results
-        poses, scores = vina.parse_output(output_path)
-        
-        # Extract top pose
+        # Extract poses and convert top pose to PDB
+        pose_files = vina.extract_poses(output_path, os.path.join(output_dir, "poses"))
         top_pose_path = os.path.join(output_dir, "top_pose.pdb")
-        vina.extract_pose(output_path, top_pose_path, pose_num=1)
+        if pose_files:
+            vina.convert_pose_to_pdb(pose_files[0], top_pose_path)
+        
+        # Load scores from JSON file created by run_docking
+        scores_file = output_path.replace('.pdbqt', '.json')
+        scores = []
+        if os.path.exists(scores_file):
+            import json
+            with open(scores_file, 'r') as f:
+                score_data = json.load(f)
+                scores = [mode['affinity'] for mode in score_data.get('modes', [])]
         
         # Run GNINA rescoring if requested
         rescoring_results = None
@@ -386,7 +407,7 @@ class BatchProcessor:
             "top_pose_path": top_pose_path,
             "scores": scores,
             "top_score": scores[0] if scores else None,
-            "num_poses": len(poses),
+            "num_poses": len(pose_files),
             "rescoring": rescoring_results
         }
     
