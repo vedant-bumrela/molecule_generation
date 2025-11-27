@@ -1,0 +1,149 @@
+{
+  "job_id": "hdi_d3bc5017427f",
+  "status": "completed",
+  "herb_info": {
+    "name": "St. John's Wort",
+    "compound": "Hyperforin",
+    "smiles": "CC1=C(C(=C2C(=C1O)C(=O)C3=C(C2=O)C=CC=C3O)C)O",
+    "structure_file": null
+  },
+  "drug_info": {
+    "name": "Warfarin",
+    "compound": "Warfarin sodium",
+    "smiles": "CC(=O)CC(C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O",
+    "structure_file": null
+  },
+  "timestamp": "2025-11-26T20:16:29.271800",
+  "job_dir": "uploads\\hdi_jobs\\hdi_d3bc5017427f",
+  "results": {
+    "herb_info": {
+      "name": "St. John's Wort",
+      "smiles": "CC1=C(C(=C2C(=C1O)C(=O)C3=C(C2=O)C=CC=C3O)C)O"
+    },
+    "drug_info": {
+      "name": "Warfarin",
+      "smiles": "CC(=O)CC(C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O"
+    },
+    "enzyme_binding": {
+      "herb": {
+        "CYP3A4": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\herb_docking\\cyp3a4\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1TQN",
+            "name": "Cytochrome P450 3A4",
+            "percentage": "~50% of drugs"
+          }
+        },
+        "CYP2D6": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\herb_docking\\cyp2d6\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2F9Q",
+            "name": "Cytochrome P450 2D6",
+            "percentage": "~25% of drugs"
+          }
+        },
+        "CYP2C9": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\herb_docking\\cyp2c9\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1R9O",
+            "name": "Cytochrome P450 2C9",
+            "percentage": "Warfarin, NSAIDs"
+          }
+        },
+        "CYP2C19": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\herb_docking\\cyp2c19\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "4GQS",
+            "name": "Cytochrome P450 2C19",
+            "percentage": "PPIs, Clopidogrel"
+          }
+        },
+        "CYP1A2": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\herb_docking\\cyp1a2\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2HI4",
+            "name": "Cytochrome P450 1A2",
+            "percentage": "Caffeine metabolism"
+          }
+        }
+      },
+      "drug": {
+        "CYP3A4": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\drug_docking\\cyp3a4\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1TQN",
+            "name": "Cytochrome P450 3A4",
+            "percentage": "~50% of drugs"
+          }
+        },
+        "CYP2D6": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\drug_docking\\cyp2d6\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2F9Q",
+            "name": "Cytochrome P450 2D6",
+            "percentage": "~25% of drugs"
+          }
+        },
+        "CYP2C9": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\drug_docking\\cyp2c9\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1R9O",
+            "name": "Cytochrome P450 2C9",
+            "percentage": "Warfarin, NSAIDs"
+          }
+        },
+        "CYP2C19": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\drug_docking\\cyp2c19\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "4GQS",
+            "name": "Cytochrome P450 2C19",
+            "percentage": "PPIs, Clopidogrel"
+          }
+        },
+        "CYP1A2": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_d3bc5017427f\\drug_docking\\cyp1a2\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2HI4",
+            "name": "Cytochrome P450 1A2",
+            "percentage": "Caffeine metabolism"
+          }
+        }
+      }
+    },
+    "interaction_risk": "LOW",
+    "affected_enzymes": [],
+    "clinical_significance": "LOW RISK: Minimal predicted interaction between St. John's Wort and Warfarin based on CYP450 enzyme binding analysis.",
+    "mechanism": "No significant competitive binding detected",
+    "recommendation": "No specific precautions required based on current analysis. However, always inform healthcare providers of all supplements and medications."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "job_id": "hdi_4a0510caab20",
+  "status": "running",
+  "herb_info": {
+    "name": "Test Herb",
+    "compound": "",
+    "smiles": "CCO",
+    "structure_file": null
+  },
+  "drug_info": {
+    "name": "Test Drug",
+    "compound": "",
+    "smiles": "CC(C)O",
+    "structure_file": null
+  },
+  "timestamp": "2025-11-26T19:59:01.264814",
+  "job_dir": "uploads\\hdi_jobs\\hdi_4a0510caab20"
+}

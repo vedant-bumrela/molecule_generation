@@ -29,6 +29,7 @@ from ..ml.gnina_rescoring import GNINAScoring
 from ..ml.equibind_pose import EquiBindPose
 from ..ml.diffdock_pose import DiffDockPose
 from .batch import BatchProcessor
+from .hdi_routes import hdi_bp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -40,6 +41,9 @@ app = Flask(__name__, static_folder=str(frontend_build_dir), static_url_path='')
 
 # Enable CORS
 CORS(app)
+
+# Register blueprints
+app.register_blueprint(hdi_bp)
 
 # Configuration
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', os.path.join(tempfile.gettempdir(), 'docking_uploads'))
