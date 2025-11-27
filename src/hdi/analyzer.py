@@ -3,7 +3,7 @@
 
 """
 HDI (Herb-Drug Interaction) Analyzer.
-Core analysis logic for predicting herb-drug interactions through molecular docking.
+Enhanced multi-layer analysis for predicting herb-drug interactions.
 """
 
 import os
@@ -14,20 +14,24 @@ from pathlib import Path
 from ..preprocessing.ligand_prep import LigandPreparation
 from ..docking.vina_docking import VinaDocking
 from .enzyme_structures import EnzymeStructureManager, CYP450_ENZYMES
+from .structural_alerts import CYP450InducerAlerts
+from .risk_aggregator import RiskAggregator
 
 
 class HDIAnalyzer:
-    """Analyze herb-drug interactions using molecular docking against CYP450 enzymes."""
+    """Analyze herb-drug interactions using multi-layer prediction system."""
     
     # Risk thresholds based on binding affinity (kcal/mol)
     HIGH_RISK_THRESHOLD = -8.0    # Strong binding
     MEDIUM_RISK_THRESHOLD = -6.0  # Moderate binding
     
     def __init__(self):
-        """Initialize HDI analyzer."""
+        """Initialize HDI analyzer with all prediction layers."""
         self.enzyme_manager = EnzymeStructureManager()
         self.ligand_prep = LigandPreparation()
         self.vina = VinaDocking()
+        self.inducer_alerts = CYP450InducerAlerts()
+        self.risk_aggregator = RiskAggregator()
     
     def analyze_hdi(
         self,
@@ -38,7 +42,7 @@ class HDIAnalyzer:
         output_dir: str = None
     ) -> Dict:
         """
-        Analyze herb-drug interaction.
+        Analyze herb-drug interaction using multi-layer prediction.
         
         Args:
             herb_smiles: SMILES string of herbal compound
@@ -48,13 +52,21 @@ class HDIAnalyzer:
             output_dir: Directory to save analysis results
             
         Returns:
-            Dictionary containing analysis results
+            Dictionary containing comprehensive analysis results
         """
         if output_dir is None:
             output_dir = Path('uploads') / 'hdi_analysis' / 'temp'
         
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # ==== LAYER 1: Structural Alerts ====
+        print("🔍 Layer 1: Scanning structural alerts...")
+        herb_alerts = self.inducer_alerts.scan_molecule(herb_smiles)
+        drug_alerts = self.inducer_alerts.scan_molecule(drug_smiles)
+        
+        # ==== LAYER 2: Molecular Docking ====
+        print("🔬 Layer 2: Running molecular docking...")
         
         # Prepare ligands from SMILES
         herb_ligand_path = output_dir / 'herb_ligand.pdbqt'
@@ -71,20 +83,37 @@ class HDIAnalyzer:
         )
         
         # Dock against CYP450 enzyme panel
-        herb_results = self._dock_against_cyp450_panel(herb_ligand, output_dir / 'herb_docking')
-        drug_results = self._dock_against_cyp450_panel(drug_ligand, output_dir / 'drug_docking')
+        herb_docking = self._dock_against_cyp450_panel(herb_ligand, output_dir / 'herb_docking')
+        drug_docking = self._dock_against_cyp450_panel(drug_ligand, output_dir / 'drug_docking')
         
-        # Calculate interaction risk
-        interaction_analysis = self._analyze_competition(herb_results, drug_results)
+        # Analyze competitive binding
+        docking_analysis = self._analyze_competition(herb_docking, drug_docking)
         
-        # Assess clinical significance
-        clinical_assessment = self._assess_clinical_significance(
-            interaction_analysis,
+        # ==== LAYER 3: Risk Aggregation ====
+        print("⚖️ Layer 3: Aggregating risk from all layers...")
+        
+        layer_results = {
+            'docking': docking_analysis,
+            'structural_alerts': herb_alerts,  # Herb alerts are primary concern
+            # TODO: Add ML models when available
+            # 'ml_induction': ml_result,
+            # 'ml_inhibition': ml_result,
+            # 'clinical_evidence': clinical_result
+        }
+        
+        aggregated_risk = self.risk_aggregator.aggregate(layer_results)
+        
+        # ==== Enhanced Clinical Assessment ====
+        clinical_assessment = self._assess_clinical_significance_enhanced(
+            aggregated_risk,
+            herb_alerts,
+            drug_alerts,
+            docking_analysis,
             herb_name,
             drug_name
         )
         
-        # Compile results
+        # ==== Compile Enhanced Results ====
         results = {
             'herb_info': {
                 'name': herb_name,
@@ -94,21 +123,49 @@ class HDIAnalyzer:
                 'name': drug_name,
                 'smiles': drug_smiles
             },
-            'enzyme_binding': {
-                'herb': herb_results,
-                'drug': drug_results
-            },
-            'interaction_risk': interaction_analysis['overall_risk'],
-            'affected_enzymes': interaction_analysis['affected_enzymes'],
+            # Aggregated risk (from all layers)
+            'interaction_risk': aggregated_risk['interaction_risk'],
+            'confidence': aggregated_risk.get('confidence', 0.5),
+            
+            # Affected enzymes (combined from all sources)
+            'affected_enzymes': self._combine_affected_enzymes(
+                docking_analysis.get('affected_enzymes', []),
+                herb_alerts.get('affected_enzymes', [])
+            ),
+            
+            # Mechanisms (from all layers)
+            'mechanisms': aggregated_risk.get('mechanisms', []),
+            
+            # Clinical assessment
             'clinical_significance': clinical_assessment['significance'],
             'mechanism': clinical_assessment['mechanism'],
-            'recommendation': clinical_assessment['recommendation']
+            'recommendation': clinical_assessment['recommendation'],
+            
+            # Detailed layer results
+            'analysis_layers': {
+                'structural_alerts': {
+                    'herb': herb_alerts,
+                    'drug': drug_alerts
+                },
+                'docking': {
+                    'herb': herb_docking,
+                    'drug': drug_docking,
+                    'competition_analysis': docking_analysis
+                },
+                'risk_breakdown': aggregated_risk.get('breakdown', {})
+            },
+            
+            # Metadata
+            'evidence_layers': aggregated_risk.get('evidence_layers', []),
+            'layer_count': aggregated_risk.get('layer_count', 1)
         }
         
         # Save results
         results_file = output_dir / 'results.json'
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
+        
+        print(f"✅ Analysis complete! Risk: {results['interaction_risk']} (Confidence: {results['confidence']:.0%})")
         
         return results
     
@@ -327,10 +384,136 @@ class HDIAnalyzer:
         # Add specific enzyme information
         if affected_enzymes:
             enzyme_names = [e['name'] for e in affected_enzymes]
-            significance += f"\n\nAffected enzymes: {', '.join(enzyme_names)}"
+            significance += f"\n\nAffected enzymes: {', '.join(enzyme_names)}" 
         
         return {
             'significance': significance,
             'mechanism': mechanism,
             'recommendation': recommendation
+        }
+    
+    def _combine_affected_enzymes(
+        self, 
+        docking_enzymes: List[Dict], 
+        alert_enzymes: List[str]
+    ) -> List[Dict]:
+        """
+        Combine affected enzymes from docking and structural alerts.
+        
+        Args:
+            docking_enzymes: List of enzyme dicts from docking analysis
+            alert_enzymes: List of enzyme names from structural alerts
+            
+        Returns:
+            Combined list of affected enzymes with enhanced information
+        """
+        # Create dict for easy lookup
+        combined = {}
+        
+        # Add docking results
+        for enzyme in docking_enzymes:
+            name = enzyme.get('name')
+            if name:
+                combined[name] = enzyme.copy()
+        
+        # Add alert-predicted enzymes
+        for enzyme_name in alert_enzymes:
+            if enzyme_name in combined:
+                # Mark that it was also predicted by alerts
+                combined[enzyme_name]['predicted_by_alerts'] = True
+                combined[enzyme_name]['risk_level'] = 'HIGH'  # Upgrade risk if predicted by both
+            else:
+                # Add as new enzyme (from induction prediction)
+                combined[enzyme_name] = {
+                    'name': enzyme_name,
+                    'risk_level': 'HIGH',
+                    'mechanism': 'Predicted enzyme induction', 
+                    'predicted_by_alerts': True,
+                    'herb_affinity': None,
+                    'drug_affinity': None
+                }
+        
+        return list(combined.values())
+    
+    def _assess_clinical_significance_enhanced(
+        self,
+        aggregated_risk: Dict,
+        herb_alerts: Dict,
+        drug_alerts: Dict,
+        docking_analysis: Dict,
+        herb_name: str,
+        drug_name: str
+    ) -> Dict:
+        """
+        Enhanced clinical significance assessment using all analysis layers.
+        
+        Args:
+            aggregated_risk: Aggregated risk from all layers
+            herb_alerts: Structural alerts for herb
+            drug_alerts: Structural alerts for drug  
+            docking_analysis: Docking competition analysis
+            herb_name: Name of herb
+            drug_name: Name of drug
+            
+        Returns:
+            Dictionary with clinical assessment
+        """
+        risk_level = aggregated_risk['interaction_risk']
+        mechanisms = aggregated_risk.get('mechanisms', [])
+        confidence = aggregated_risk.get('confidence', 0.5)
+        
+        # Build significance message
+        if risk_level == "HIGH":
+            significance = f"⚠️ HIGH RISK: {herb_name} shows strong potential for interaction with {drug_name}. "
+            
+            # Add specific mechanisms
+            if any('induction' in m.lower() for m in mechanisms):
+                significance += f"The herbal compound may induce CYP450 enzymes, potentially reducing {drug_name} effectiveness. "
+            if any('inhibition' in m.lower() or 'competitive' in m.lower() for m in mechanisms):
+                significance += f"Competitive enzyme inhibition may increase {drug_name} levels, risking toxicity. "
+            
+            # Add structural alert details
+            if herb_alerts.get('num_alerts', 0) > 0:
+                significance += f"\n\n🔬 Structural Analysis: Detected {herb_alerts['num_alerts']} inducer/inhibitor patterns. "
+                top_alerts = herb_alerts.get('alerts', [])[:3]
+                for alert in top_alerts:
+                    significance += f"\n  • {alert.get('description', '')}"
+            
+            mechanism = " | ".join(mechanisms[:3]) if mechanisms else "Multiple metabolic pathways"
+            
+            recommendation = f"⛔ AVOID concurrent use of {herb_name} and {drug_name}. "
+            recommendation += f"If unavoidable, close monitoring of {drug_name} levels and clinical response is essential. "
+            recommendation += "Dose adjustments may be required under medical supervision."
+            
+        elif risk_level == "MEDIUM":
+            significance = f"⚡ MODERATE RISK: {herb_name} may interfere with {drug_name} metabolism. "
+            significance += "Clinical monitoring recommended."
+            
+            if mechanisms:
+                significance += f"\n\nPotential mechanisms: {', '.join(mechanisms[:2])}"
+            
+            mechanism = " | ".join(mechanisms[:2]) if mechanisms else "CYP450 interference"
+            
+            recommendation = f"⚠️ Use caution when combining {herb_name} with {drug_name}. "
+            recommendation += "Monitor for changes in drug efficacy or adverse effects. Consult healthcare provider before use."
+            
+        else:
+            significance = f"✓ LOW RISK: Minimal predicted interaction between {herb_name} and {drug_name} "
+            significance += "based on current analysis."
+            
+            if confidence < 0.5:
+                significance += "\n\nNote: Limited data available. Exercise caution and inform healthcare providers of all supplements."
+            
+            mechanism = "No significant metabolic interference detected"
+            recommendation = "No specific precautions required based on current analysis. However, always inform healthcare providers of all supplements and medications."
+        
+        # Add confidence level disclaimer
+        confidence_text = "high" if confidence > 0.8 else "moderate" if confidence > 0.5 else "limited"
+        significance += f"\n\n📊 Confidence: {confidence_text} ({confidence:.0%}) | Evidence from {aggregated_risk.get('layer_count', 1)} analysis layer(s)"
+        
+        return {
+            'significance': significance,
+            'mechanism': mechanism,
+            'recommendation': recommendation,
+            'confidence': confidence
         }

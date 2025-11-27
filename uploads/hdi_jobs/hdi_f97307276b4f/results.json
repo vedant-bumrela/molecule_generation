@@ -1,0 +1,221 @@
+{
+  "herb_info": {
+    "name": "St. John's Wort",
+    "smiles": "CC1=C2C(=C(C(=C1O)C(C)CCC(C)C)C)C(=O)C3=C(C2=O)C(=C(C(=C3)O)C(C)CCC(C)C)O"
+  },
+  "drug_info": {
+    "name": "Warfarin",
+    "smiles": "CC(=O)CC(C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O"
+  },
+  "interaction_risk": "MEDIUM",
+  "confidence": 0.85,
+  "affected_enzymes": [
+    {
+      "name": "CYP3A4",
+      "risk_level": "HIGH",
+      "mechanism": "Predicted enzyme induction",
+      "predicted_by_alerts": true,
+      "herb_affinity": null,
+      "drug_affinity": null
+    },
+    {
+      "name": "CYP2C9",
+      "risk_level": "HIGH",
+      "mechanism": "Predicted enzyme induction",
+      "predicted_by_alerts": true,
+      "herb_affinity": null,
+      "drug_affinity": null
+    }
+  ],
+  "mechanisms": [
+    "PXR activation (CYP3A4 induction)",
+    "PXR/CAR activation (CYP3A4, CYP2C9 induction)"
+  ],
+  "clinical_significance": "\u26a1 MODERATE RISK: St. John's Wort may interfere with Warfarin metabolism. Clinical monitoring recommended.\n\nPotential mechanisms: PXR activation (CYP3A4 induction), PXR/CAR activation (CYP3A4, CYP2C9 induction)\n\n\ud83d\udcca Confidence: high (85%) | Evidence from 1 analysis layer(s)",
+  "mechanism": "PXR activation (CYP3A4 induction) | PXR/CAR activation (CYP3A4, CYP2C9 induction)",
+  "recommendation": "\u26a0\ufe0f Use caution when combining St. John's Wort with Warfarin. Monitor for changes in drug efficacy or adverse effects. Consult healthcare provider before use.",
+  "analysis_layers": {
+    "structural_alerts": {
+      "herb": {
+        "alerts": [
+          {
+            "type": "physicochemical",
+            "pattern": "large_lipophilic",
+            "description": "Large molecular weight and high lipophilicity (typical of PXR activators)",
+            "severity": "MEDIUM",
+            "values": {
+              "MW": 480.64500000000027,
+              "LogP": 7.275040000000008
+            }
+          },
+          {
+            "type": "similarity",
+            "pattern": "similar_to_hyperforin",
+            "description": "Structurally similar to hyperforin (similarity: 0.72)",
+            "severity": "HIGH",
+            "similarity": 0.717391304347826
+          }
+        ],
+        "num_alerts": 2,
+        "risk": "MEDIUM",
+        "likely_mechanisms": [
+          "PXR/CAR activation (CYP3A4, CYP2C9 induction)",
+          "PXR activation (CYP3A4 induction)"
+        ],
+        "affected_enzymes": [
+          "CYP3A4",
+          "CYP2C9"
+        ]
+      },
+      "drug": {
+        "alerts": [
+          {
+            "type": "physicochemical",
+            "pattern": "polyaromatic",
+            "description": "Multiple aromatic rings (3) - common in CYP inducers",
+            "severity": "LOW"
+          }
+        ],
+        "num_alerts": 1,
+        "risk": "LOW",
+        "likely_mechanisms": [
+          "Unknown mechanism"
+        ],
+        "affected_enzymes": [
+          "CYP3A4"
+        ]
+      }
+    },
+    "docking": {
+      "herb": {
+        "CYP3A4": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\herb_docking\\cyp3a4\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1TQN",
+            "name": "Cytochrome P450 3A4",
+            "percentage": "~50% of drugs"
+          }
+        },
+        "CYP2D6": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\herb_docking\\cyp2d6\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2F9Q",
+            "name": "Cytochrome P450 2D6",
+            "percentage": "~25% of drugs"
+          }
+        },
+        "CYP2C9": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\herb_docking\\cyp2c9\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1R9O",
+            "name": "Cytochrome P450 2C9",
+            "percentage": "Warfarin, NSAIDs"
+          }
+        },
+        "CYP2C19": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\herb_docking\\cyp2c19\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "4GQS",
+            "name": "Cytochrome P450 2C19",
+            "percentage": "PPIs, Clopidogrel"
+          }
+        },
+        "CYP1A2": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\herb_docking\\cyp1a2\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2HI4",
+            "name": "Cytochrome P450 1A2",
+            "percentage": "Caffeine metabolism"
+          }
+        }
+      },
+      "drug": {
+        "CYP3A4": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\drug_docking\\cyp3a4\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1TQN",
+            "name": "Cytochrome P450 3A4",
+            "percentage": "~50% of drugs"
+          }
+        },
+        "CYP2D6": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\drug_docking\\cyp2d6\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2F9Q",
+            "name": "Cytochrome P450 2D6",
+            "percentage": "~25% of drugs"
+          }
+        },
+        "CYP2C9": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\drug_docking\\cyp2c9\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "1R9O",
+            "name": "Cytochrome P450 2C9",
+            "percentage": "Warfarin, NSAIDs"
+          }
+        },
+        "CYP2C19": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\drug_docking\\cyp2c19\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "4GQS",
+            "name": "Cytochrome P450 2C19",
+            "percentage": "PPIs, Clopidogrel"
+          }
+        },
+        "CYP1A2": {
+          "success": true,
+          "output_path": "uploads\\hdi_jobs\\hdi_f97307276b4f\\drug_docking\\cyp1a2\\docking_result.pdbqt",
+          "scores": [],
+          "best_affinity": null,
+          "enzyme_info": {
+            "pdb_id": "2HI4",
+            "name": "Cytochrome P450 1A2",
+            "percentage": "Caffeine metabolism"
+          }
+        }
+      },
+      "competition_analysis": {
+        "overall_risk": "LOW",
+        "affected_enzymes": [],
+        "num_affected": 0
+      }
+    },
+    "risk_breakdown": {
+      "Structural alerts": {
+        "risk": "MEDIUM",
+        "weight": 0.85
+      }
+    }
+  },
+  "evidence_layers": [
+    "Structural alerts"
+  ],
+  "layer_count": 1
+}

@@ -14,9 +14,10 @@ interface HDIResults {
     interaction_risk: string;
     affected_enzymes: Array<{
         name: string;
-        herb_affinity: number;
-        drug_affinity: number;
+        herb_affinity: number | null;
+        drug_affinity: number | null;
         risk_level: string;
+        mechanism?: string;
     }>;
     clinical_significance: string;
     mechanism: string;
@@ -306,10 +307,16 @@ const HerbDrugInteraction = () => {
                                                                 {enzyme.risk_level}
                                                             </Badge>
                                                         </div>
-                                                        <div className="text-sm text-gray-400 mt-1">
-                                                            Herb: {enzyme.herb_affinity.toFixed(2)} kcal/mol |
-                                                            Drug: {enzyme.drug_affinity.toFixed(2)} kcal/mol
-                                                        </div>
+                                                        {enzyme.herb_affinity !== null && enzyme.drug_affinity !== null ? (
+                                                            <div className="text-sm text-gray-400 mt-1">
+                                                                Herb: {enzyme.herb_affinity.toFixed(2)} kcal/mol |
+                                                                Drug: {enzyme.drug_affinity.toFixed(2)} kcal/mol
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-sm text-gray-400 mt-1">
+                                                                {enzyme.mechanism || 'Predicted by structural analysis'}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
