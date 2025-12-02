@@ -30,6 +30,7 @@ from ..ml.equibind_pose import EquiBindPose
 from ..ml.diffdock_pose import DiffDockPose
 from .batch import BatchProcessor
 from .hdi_routes import hdi_bp
+from src.chemverse import chemverse_bp  # 🧪 ChemVerse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,6 +45,7 @@ CORS(app)
 
 # Register blueprints
 app.register_blueprint(hdi_bp)
+app.register_blueprint(chemverse_bp)  # 🧪 ChemVerse
 
 # Configuration
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', os.path.join(tempfile.gettempdir(), 'docking_uploads'))

@@ -16,6 +16,7 @@ from ..docking.vina_docking import VinaDocking
 from .enzyme_structures import EnzymeStructureManager, CYP450_ENZYMES
 from .structural_alerts import CYP450InducerAlerts
 from .risk_aggregator import RiskAggregator
+from .ml_models.predictor import SimpleCYP450Predictor
 
 
 class HDIAnalyzer:
@@ -32,6 +33,7 @@ class HDIAnalyzer:
         self.vina = VinaDocking()
         self.inducer_alerts = CYP450InducerAlerts()
         self.risk_aggregator = RiskAggregator()
+        self.ml_predictor = SimpleCYP450Predictor()  # 🆕 ML predictor
     
     def analyze_hdi(
         self,
@@ -65,8 +67,13 @@ class HDIAnalyzer:
         herb_alerts = self.inducer_alerts.scan_molecule(herb_smiles)
         drug_alerts = self.inducer_alerts.scan_molecule(drug_smiles)
         
-        # ==== LAYER 2: Molecular Docking ====
-        print("🔬 Layer 2: Running molecular docking...")
+        # ==== LAYER 2: ML Predictions ====
+        print("🤖 Layer 2: ML-based predictions...")
+        herb_ml_inhibition = self.ml_predictor.predict_inhibition(herb_smiles, 'CYP3A4')
+        herb_ml_induction = self.ml_predictor.predict_induction(herb_smiles, 'CYP3A4')
+        
+        # ==== LAYER 3: Molecular Docking ====
+        print("🔬 Layer 3: Running molecular docking...")
         
         # Prepare ligands from SMILES
         herb_ligand_path = output_dir / 'herb_ligand.pdbqt'
@@ -89,16 +96,14 @@ class HDIAnalyzer:
         # Analyze competitive binding
         docking_analysis = self._analyze_competition(herb_docking, drug_docking)
         
-        # ==== LAYER 3: Risk Aggregation ====
-        print("⚖️ Layer 3: Aggregating risk from all layers...")
+        # ==== LAYER 4: Risk Aggregation ====
+        print("⚖️ Layer 4: Aggregating risk from all layers...")
         
         layer_results = {
             'docking': docking_analysis,
             'structural_alerts': herb_alerts,  # Herb alerts are primary concern
-            # TODO: Add ML models when available
-            # 'ml_induction': ml_result,
-            # 'ml_inhibition': ml_result,
-            # 'clinical_evidence': clinical_result
+            'ml_inhibition': herb_ml_inhibition,  # 🆕 ML inhibition prediction
+            'ml_induction': herb_ml_induction,     # 🆕 ML induction prediction
         }
         
         aggregated_risk = self.risk_aggregator.aggregate(layer_results)

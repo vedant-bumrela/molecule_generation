@@ -1,0 +1,23 @@
+{
+  "modes": [
+    {
+      "mode": 1,
+      "affinity": -10.46,
+      "rmsd_lb": 0.0,
+      "rmsd_ub": 0.0
+    },
+    {
+      "mode": 2,
+      "affinity": -10.11,
+      "rmsd_lb": 1.652,
+      "rmsd_ub": 3.601
+    },
+    {
+      "mode": 3,
+      "affinity": -10.01,
+      "rmsd_lb": 3.01,
+      "rmsd_ub": 3.735
+    }
+  ],
+  "best_affinity": -10.46
+}

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, FlaskConical, Cpu, Microscope, Leaf } from "lucide-react";
+import { ArrowRight, FlaskConical, Cpu, Microscope, Leaf, Atom } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -80,6 +80,14 @@ export const HeroCta = () => {
             >
               <Leaf className="mr-2 h-5 w-5" />
               Herb-Drug Interaction
+            </Button>
+            <Button
+              size="lg"
+              className="h-14 px-8 text-lg bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white shadow-lg hover:shadow-cyan-500/40 transition-all duration-300 rounded-full"
+              onClick={() => navigate("/chemverse")}
+            >
+              <Atom className="mr-2 h-5 w-5" />
+              ChemVerse Lab
             </Button>
             <Button
               variant="outline"

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Docking from "./pages/Docking";
 import HerbDrugInteraction from "./pages/HerbDrugInteraction";
+import ChemVerse from "./pages/ChemVerse";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/docking" element={<Docking />} />
           <Route path="/hdi" element={<HerbDrugInteraction />} />
+          <Route path="/chemverse" element={<ChemVerse />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
